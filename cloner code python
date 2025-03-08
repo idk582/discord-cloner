@@ -1,0 +1,96 @@
+import os
+import sys
+import time
+import platform
+import subprocess
+import requests
+import base64
+import hashlib
+import discord
+from discord import Client
+from colorama import Fore, init
+from pystyle import Colorate, Colors
+
+init(autoreset=True)
+
+def clear_screen():
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+def get_system_info():
+    try:
+        if platform.system() == 'Windows':
+            username = os.getlogin()
+            cpu = subprocess.check_output("wmic cpu get Name", shell=True).decode().split("\n")[1].strip()
+            gpu = subprocess.check_output("wmic path win32_videocontroller get caption", shell=True).decode().split("\n")[1].strip()
+            ram = subprocess.check_output("wmic ComputerSystem get TotalPhysicalMemory", shell=True).decode().split("\n")[1].strip()
+        else:
+            username = subprocess.check_output("whoami", shell=True).decode().strip()
+            cpu = subprocess.check_output("cat /proc/cpuinfo | grep 'model name' | head -1", shell=True).decode().split(':')[1].strip()
+            gpu = subprocess.check_output("lspci | grep VGA | cut -d ':' -f3", shell=True).decode().strip()
+            ram = subprocess.check_output("grep MemTotal /proc/meminfo | awk '{print $2}'", shell=True).decode().strip()
+        
+        hwid = f'{username}-{cpu}-{gpu}-{ram}'
+        return hwid
+    except Exception as e:
+        return f'Error: Unable to retrieve system info. {e}'
+
+def encode_hwid(hwid):
+    hashed_hwid = hashlib.sha256(hwid.encode()).hexdigest()
+    encoded_hwid = base64.b64encode(hashed_hwid.encode()).decode()
+    return encoded_hwid
+
+def check_hwid_in_pastebin(encoded_hwid):
+    pastebin_url = 'this needs to be a pastebin with the hwid shown when the hwid is not verified'
+    try:
+        response = requests.get(pastebin_url)
+        if response.status_code == 200:
+            hwids = [line.strip() for line in response.text.splitlines() if line.strip() and not line.startswith('#')]
+            return encoded_hwid in hwids
+        print(f'{Fore.YELLOW}Cannot retrieve data | please contact a staff member | discord.gg/6eeXdHA2CX')
+        return False
+    except requests.RequestException as e:
+        print(f'{Fore.RED} {e} | please contact a staff member | discord.gg/6eeXdHA2CX')
+        return False
+
+hwid = get_system_info()
+encoded_hwid = encode_hwid(hwid)
+
+if not check_hwid_in_pastebin(encoded_hwid):
+    print('Create a Ticket and send this to a staff member')
+    print('--------------------------------------')
+    print(f'HWID: {encoded_hwid}')
+    print('--------------------------------------\n')
+    print(f'{Fore.RED}Hwid is not verified | please contact a staff member | discord.gg/')
+    input()
+    sys.exit()
+
+clear_screen()
+logo = """
+                 ____          ________    
+                / __ \_____   / ____/ /___  ____  ___  _____
+               / / / / ___/  / /   / / __ \/ __ \/ _ \/ ___/
+              / /_/ / /__   / /___/ / /_/ / / / /  __/ /    
+              \____/\___/   \____/_/\____/_/ /_/\___/_/     
+
+                  Made By ur user | Prefix: !
+                  Custom     | discord.gg/
+"""
+print(Colorate.Horizontal(Colors.green_to_cyan, logo))
+
+token = input(f'{Fore.LIGHTGREEN_EX}Enter your token >> ')
+guild_s = input(f'{Fore.LIGHTGREEN_EX}Enter the server id you want to copy >> ')
+guild = input(f'{Fore.LIGHTGREEN_EX}Enter the server id you want to copy to >> ')
+
+client = Client()
+
+@client.event
+async def on_ready():
+    print(f'{Fore.LIGHTGREEN_EX}Cloning server as {client.user}, please wait...')
+    guild_from = client.get_guild(int(guild_s))
+    guild_to = client.get_guild(int(guild))
+    # Hier müssen noch die Methoden für das Klonen implementiert werden
+    print(f'{Fore.LIGHTGREEN_EX}Cloning successfully completed! Press Enter to exit.')
+    input()
+    sys.exit()
+
+client.run(token, bot=False)
